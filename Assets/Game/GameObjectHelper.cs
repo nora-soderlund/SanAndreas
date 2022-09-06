@@ -6,6 +6,35 @@ using UnityEngine;
 
 namespace Game {
     class GameObjectHelper {
+        public static bool TryFindChild(GameObject root, Predicate<string> predicate, out GameObject result) {
+            result = FindChild(root, predicate);
+
+            if(result == null)
+                return false;
+
+            return true;
+        }
+
+        public static GameObject FindChild(GameObject root, Predicate<string> predicate) {
+            foreach(Transform child in root.transform) {
+                string name = child.name.ToLower();
+                int index = name.IndexOf('.');
+
+                if(index != -1)
+                    name = name.Substring(0, index);
+
+                if(predicate(name))
+                    return child.gameObject;
+            }
+
+            foreach(Transform child in root.transform) {
+                if(TryFindChild(child.gameObject, predicate, out GameObject result))
+                    return result;
+            }
+
+            return null;
+        }
+
         public static bool TryGetChild(GameObject root, Predicate<string> predicate, out GameObject result) {
             result = GetChild(root, predicate);
 

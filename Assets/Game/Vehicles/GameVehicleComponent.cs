@@ -43,51 +43,55 @@ namespace Game.Vehicles {
     // -> Collisions
     // -> Players
     class GameVehicleComponent : MonoBehaviour {
-        private Rigidbody rigidBody;
+        public Rigidbody RigidBody;
 
         private IdeCar ideCar;
         public CfgHandling CfgHandling;
 
-        private GameVehicleBonesData bones;
+        public GameVehicleBonesData Bones;
 
         public List<GameVehicleWheelData> Wheels = new List<GameVehicleWheelData>();
 
         void Start() {
-            bones = new GameVehicleBonesData(gameObject);
+            Bones = new GameVehicleBonesData(gameObject);
 
-            ideCar = GameVehicleData.Cars.Find(x => x.ModelName == bones.Model.name);
+            ideCar = GameVehicleData.Cars.Find(x => x.ModelName == Bones.Model.name);
             CfgHandling = GameVehicleData.Handling.Find(x => x.HandlingId == ideCar.HandlingId);
 
-            foreach(GameObject damageModel in GameObjectHelper.GetChildren(bones.Model, x => x.EndsWith("_dam")))
+            foreach(GameObject damageModel in GameObjectHelper.GetChildren(Bones.Model, x => x.EndsWith("_dam")))
                 damageModel.SetActive(false);
 
-            GameObject chassisVlo = GameObjectHelper.FindChild(bones.Model, "chassis_vlo", true);
+            GameObject chassisVlo = GameObjectHelper.FindChild(Bones.Model, "chassis_vlo", true);
             chassisVlo.SetActive(false);
 
-            GameObject chassis = GameObjectHelper.FindChild(bones.Model, "chassis", true);
+            GameObject chassis = GameObjectHelper.FindChild(Bones.Model, "chassis", true);
 
-            rigidBody = gameObject.AddComponent<Rigidbody>();
-            rigidBody.mass = CfgHandling.Mass;
-            rigidBody.centerOfMass = CfgHandling.CentreOfMass;
-            //rigidBody.drag = CfgHandling.DragMult;
+            GameObject centerOfMass = new GameObject();
+            centerOfMass.transform.SetParent(gameObject.transform);
+            centerOfMass.transform.localPosition = CfgHandling.CentreOfMass;
+
+            RigidBody = gameObject.AddComponent<Rigidbody>();
+            RigidBody.mass = CfgHandling.Mass;
+            RigidBody.centerOfMass = CfgHandling.CentreOfMass;
+            //RigidBody.drag = CfgHandling.DragMult;
 
             SetupWheels();
         }
 
         void FixedUpdate() {
-            if(rigidBody.IsSleeping()) {
-                rigidBody.AddForce(transform.up * 0.01f);
+            if(RigidBody.IsSleeping()) {
+                RigidBody.AddForce(transform.up * 0.01f);
             }
         }
 
         void SetupWheels() {
-            GameObject wheel = GameObjectHelper.FindChild(bones.Model, "wheel", true);
+            GameObject wheel = GameObjectHelper.FindChild(Bones.Model, "wheel", true);
             wheel.SetActive(false);
 
-            SetupWheel(wheel, bones.Dummies["wheel_lf_dummy"]);
-            SetupWheel(wheel, bones.Dummies["wheel_rf_dummy"]);
-            SetupWheel(wheel, bones.Dummies["wheel_lb_dummy"]);
-            SetupWheel(wheel, bones.Dummies["wheel_rb_dummy"]);
+            SetupWheel(wheel, Bones.Dummies["wheel_lf_dummy"]);
+            SetupWheel(wheel, Bones.Dummies["wheel_rf_dummy"]);
+            SetupWheel(wheel, Bones.Dummies["wheel_lb_dummy"]);
+            SetupWheel(wheel, Bones.Dummies["wheel_rb_dummy"]);
         }
 
         void SetupWheel(GameObject model, GameVehicleDummyData dummy) {
@@ -100,13 +104,22 @@ namespace Game.Vehicles {
             if(model.transform.parent.name[6] == dummy.Dummy.name[6])
                 dummy.Normal.transform.localRotation = Quaternion.Euler(dummy.Normal.transform.localRotation.eulerAngles.x, dummy.Normal.transform.localRotation.eulerAngles.y + 180f, dummy.Normal.transform.localRotation.eulerAngles.z);
 
-            dummy.Normal.transform.localScale = new Vector3(scale, scale, scale);
+            dummy.Normal.transform.localPosition = Vector3.zero;
+            //dummy.Normal.transform.localScale = new Vector3(scale, scale, scale);
 
             WheelCollider wheelCollider = dummy.Dummy.AddComponent<WheelCollider>();
-            wheelCollider.radius = 0.25f * scale;
+            wheelCollider.radius = (dummy.Normal.transform.GetComponent<MeshFilter>().mesh.bounds.size.y * scale) / 2f;
             //wheelCollider.wheelDampingRate = 1f;
             wheelCollider.wheelDampingRate = CfgHandling.CollisionDamageMultiplier;
             //wheelCollider.brakeTorque = CfgHandling.BrakeDeceleration;
+
+            JointSpring suspension = wheelCollider.suspensionSpring;
+
+            suspension.damper = CfgHandling.SuspensionDamingLevel;
+            suspension.spring = CfgHandling.SuspensionForceLevel;
+            suspension.targetPosition = 0.5f;
+
+            wheelCollider.suspensionSpring = suspension;
 
             Wheels.Add(new GameVehicleWheelData() {
                 GameObject = dummy.Dummy,

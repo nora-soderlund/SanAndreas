@@ -9,6 +9,7 @@ namespace Game.Vehicles {
         public GameObject Players;
 
         public Dictionary<string, GameVehicleDummyData> Dummies = new Dictionary<string, GameVehicleDummyData>();
+        public Dictionary<string, GameObject> Points = new Dictionary<string, GameObject>();
         
         public GameVehicleBonesData(GameObject gameObject) {
             Model = gameObject.transform.GetChild(0).gameObject;
@@ -55,6 +56,10 @@ namespace Game.Vehicles {
                 dummy.name = name;
 
                 Dummies.Add(name, new GameVehicleDummyData(dummy));
+            }
+            
+            if(GameObjectHelper.TryFindChild(Model, x => x == "ped_frontseat", out GameObject ped_frontseat)) {
+                Points.Add("ped_frontseat", ped_frontseat);
             }
         }
     }

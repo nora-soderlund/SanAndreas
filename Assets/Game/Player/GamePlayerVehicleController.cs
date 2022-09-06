@@ -5,6 +5,8 @@ using UnityEngine;
 
 using Game.Data.Types;
 using Game.Animations;
+using Game.Ped;
+using Game.Player;
 
 namespace Game.Vehicles {
     class GamePlayerVehicleController : MonoBehaviour {
@@ -15,11 +17,20 @@ namespace Game.Vehicles {
                 throw new InvalidOperationException("GameVehicleComponent must be added before GamePlayerVehicleController!");
         }
 
+        public void Update() {
+            processActionsUpdate();
+        }
+
         public void FixedUpdate()
         {
             float motor = Input.GetAxis("Vertical");
             float steering = Input.GetAxis("Horizontal");
             bool braking = Input.GetKey(KeyCode.Space);
+
+            if(steering != 0)
+                vehicleComponent.RigidBody.mass = vehicleComponent.CfgHandling.TurnMass;
+            else
+                vehicleComponent.RigidBody.mass = vehicleComponent.CfgHandling.Mass;
 
             foreach (GameVehicleWheelData wheelData in vehicleComponent.Wheels) {
                 if (wheelData.Front) {
@@ -27,14 +38,22 @@ namespace Game.Vehicles {
                 }
                 
                 if(!braking) {
-                    if((vehicleComponent.CfgHandling.DriveType == 'F' && wheelData.Front) || (vehicleComponent.CfgHandling.DriveType == 'R' && !wheelData.Front) || vehicleComponent.CfgHandling.DriveType == '4')
-                        wheelData.WheelCollider.motorTorque = motor * (vehicleComponent.CfgHandling.EngineAcceleration * 1000);
+                    if(motor != 0) {
+                        if((vehicleComponent.CfgHandling.DriveType == 'F' && wheelData.Front) || (vehicleComponent.CfgHandling.DriveType == 'R' && !wheelData.Front) || vehicleComponent.CfgHandling.DriveType == '4')
+                            wheelData.WheelCollider.motorTorque = motor * (vehicleComponent.CfgHandling.Mass * vehicleComponent.CfgHandling.EngineAcceleration);
+                    }
 
                     wheelData.WheelCollider.brakeTorque = 0;
                 }
                 else {
                     wheelData.WheelCollider.motorTorque = 0;
-                    wheelData.WheelCollider.brakeTorque = vehicleComponent.CfgHandling.BrakeDeceleration * 1000;
+
+                    float torque = (vehicleComponent.CfgHandling.Mass * vehicleComponent.CfgHandling.EngineAcceleration * vehicleComponent.CfgHandling.BrakeDeceleration) * 2;
+
+                    if(wheelData.Front)
+                        wheelData.WheelCollider.brakeTorque = torque * vehicleComponent.CfgHandling.BrakeBias;
+                    else
+                        wheelData.WheelCollider.brakeTorque = torque * (1f - vehicleComponent.CfgHandling.BrakeBias);
                 }
 
                 ApplyLocalPositionToVisuals(wheelData);
@@ -46,6 +65,25 @@ namespace Game.Vehicles {
         
             //wheelData.GameObject.transform.position = position;
             wheelData.GameObject.transform.rotation = rotation;
+        }
+
+        private void processActionsUpdate() {
+            if(!Input.GetKeyDown(KeyCode.F))
+                return;
+            
+            foreach (GameVehicleWheelData wheelData in vehicleComponent.Wheels) {
+                wheelData.WheelCollider.motorTorque = 0;
+                wheelData.WheelCollider.brakeTorque = 0;
+            }
+
+            GameInstances.PlayerPed.transform.SetParent(transform.parent);
+            GameInstances.PlayerCamera.transform.SetParent(GameInstances.PlayerPed.transform);
+            
+            GameInstances.PlayerPed.GetComponent<CharacterController>().enabled = true;
+            GameInstances.PlayerPed.GetComponent<GamePedAnimationComponent>().Stop();
+
+            GameObject.Destroy(gameObject.GetComponent<GamePlayerVehicleController>());
+            GameInstances.PlayerPed.AddComponent<GamePlayerPedController>();
         }
     }
 }
