@@ -113,14 +113,6 @@ namespace Game.Vehicles {
             wheelCollider.wheelDampingRate = CfgHandling.CollisionDamageMultiplier;
             //wheelCollider.brakeTorque = CfgHandling.BrakeDeceleration;
 
-            JointSpring suspension = wheelCollider.suspensionSpring;
-
-            suspension.damper = CfgHandling.SuspensionDamingLevel;
-            suspension.spring = CfgHandling.SuspensionForceLevel;
-            suspension.targetPosition = 0.5f;
-
-            wheelCollider.suspensionSpring = suspension;
-
             Wheels.Add(new GameVehicleWheelData() {
                 GameObject = dummy.Dummy,
                 WheelCollider = wheelCollider,

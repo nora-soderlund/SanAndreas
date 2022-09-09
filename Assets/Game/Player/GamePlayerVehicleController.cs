@@ -25,7 +25,7 @@ namespace Game.Vehicles {
         {
             float motor = Input.GetAxis("Vertical");
             float steering = Input.GetAxis("Horizontal");
-            bool braking = Input.GetKey(KeyCode.Space);
+            float braking = (Input.GetKey(KeyCode.Space) == true)?(1f):((motor == 0.0f)?(0.1f):(0.0f));
 
             if(steering != 0)
                 vehicleComponent.RigidBody.mass = vehicleComponent.CfgHandling.TurnMass;
@@ -37,24 +37,19 @@ namespace Game.Vehicles {
                     wheelData.WheelCollider.steerAngle = steering * vehicleComponent.CfgHandling.SteeringLock;
                 }
                 
-                if(!braking) {
-                    if(motor != 0) {
-                        if((vehicleComponent.CfgHandling.DriveType == 'F' && wheelData.Front) || (vehicleComponent.CfgHandling.DriveType == 'R' && !wheelData.Front) || vehicleComponent.CfgHandling.DriveType == '4')
-                            wheelData.WheelCollider.motorTorque = motor * (vehicleComponent.CfgHandling.Mass * vehicleComponent.CfgHandling.EngineAcceleration);
-                    }
-
-                    wheelData.WheelCollider.brakeTorque = 0;
+                if((vehicleComponent.CfgHandling.DriveType == 'F' && wheelData.Front) || (vehicleComponent.CfgHandling.DriveType == 'R' && !wheelData.Front) || vehicleComponent.CfgHandling.DriveType == '4') {
+                    if(motor != 0f)
+                        wheelData.WheelCollider.motorTorque = motor * (vehicleComponent.CfgHandling.Mass * vehicleComponent.CfgHandling.EngineAcceleration);
                 }
-                else {
+                else
                     wheelData.WheelCollider.motorTorque = 0;
 
-                    float torque = (vehicleComponent.CfgHandling.Mass * vehicleComponent.CfgHandling.EngineAcceleration * vehicleComponent.CfgHandling.BrakeDeceleration) * 2;
+                float torque = (vehicleComponent.CfgHandling.Mass * vehicleComponent.CfgHandling.EngineAcceleration * vehicleComponent.CfgHandling.BrakeDeceleration) * 2;
 
-                    if(wheelData.Front)
-                        wheelData.WheelCollider.brakeTorque = torque * vehicleComponent.CfgHandling.BrakeBias;
-                    else
-                        wheelData.WheelCollider.brakeTorque = torque * (1f - vehicleComponent.CfgHandling.BrakeBias);
-                }
+                if(wheelData.Front)
+                    wheelData.WheelCollider.brakeTorque = braking * (torque * vehicleComponent.CfgHandling.BrakeBias);
+                else
+                    wheelData.WheelCollider.brakeTorque = braking * (torque * (1f - vehicleComponent.CfgHandling.BrakeBias));
 
                 ApplyLocalPositionToVisuals(wheelData);
             }
