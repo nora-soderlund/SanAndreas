@@ -46,19 +46,17 @@ namespace Game.Player {
         private void processMovementUpdate() {
             bool walking = Input.GetKey(KeyCode.W);
 
-            Sprinting = Input.GetKey(KeyCode.LeftShift);
-
-            float speed = (Sprinting)?(sprintSpeed):(walkSpeed);
+            movementComponent.Running = Input.GetKey(KeyCode.LeftShift);
 
             if(walking)
-                movementComponent.Velocity += movementComponent.transform.forward * speed;
+                movementComponent.Velocity += movementComponent.transform.forward;
             else if(Input.GetKey(KeyCode.S))
-                movementComponent.Velocity -= movementComponent.transform.forward * speed;
+                movementComponent.Velocity -= movementComponent.transform.forward;
             
             if(Input.GetKey(KeyCode.A))
-                movementComponent.Velocity -= movementComponent.transform.right * speed;
+                movementComponent.Velocity -= movementComponent.transform.right;
             else if(Input.GetKey(KeyCode.D))
-                movementComponent.Velocity += movementComponent.transform.right * speed;
+                movementComponent.Velocity += movementComponent.transform.right;
  
             if (Input.GetButtonDown("Jump") && groundedPlayer) {
                 movementComponent.Velocity.y += Mathf.Sqrt(jumpHeight * -3.0f * gravityValue);
